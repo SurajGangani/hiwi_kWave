@@ -25,9 +25,7 @@ Nperiods = 2
 
 # Position divided by the shock formation distance
 # In the current implementation, the Fubini solution is singular at sigma = 0!
-sigma = 0.9
-
-
+sigma = 0.5
 
 # Duration of one excitation period
 Ta = 1.0/fa

@@ -71,6 +71,7 @@ sensor_data = kspaceFirstOrder1D(kgrid, medium, source, sensor, input_arg{:});
 
 
 %% POST PROCESSING
+%% Fay Solution
 
 % pa :: curve of amplitude decay (t = 8e-4)
 x   = kgrid.x_vec;                           % x distance [m]
@@ -82,28 +83,51 @@ P_max_simulation = sensor_data.p_max(sensor_pos);
 
 P_ration = P_max_analytical ./ P_max_simulation;
 
-% % ==== SPECIAL PLOTS ===================================================================
+
+%% Fubini Solution
+
+% Time t to get Fubini Solution
+t = 9.8250e-04;
+
+%[sigma,pbydpa] = function_Fubini_tconstant(fa, dpa, c0, t, xbar, x);
+[sigma, pbydpa] = function_Fubini_tconstant(source_freq, P_excitation, c0, t, xsh, x);
+
+
+% Get Fubini solution only between sigma 1 and -1
+sigma_fubini_index = find(sigma > -1 & sigma < 1);
+sigma_fubini       = sigma(sigma_fubini_index);
+pbydpa_fubini      = pbydpa(sigma_fubini_index);
+
+% script to get edge of an wave profile
+% Pressure at each peak of Fubini wave profile
+pbydpa_fubini_peak = [];
+sigma_fubini_peak  = [];
+j = 1;
+for i = 2:length(pbydpa_fubini)-1
+    if pbydpa_fubini(i) > 0
+        if (pbydpa_fubini(i-1) < pbydpa_fubini(i)) && (pbydpa_fubini(i) > pbydpa_fubini(i+1))
+            pbydpa_fubini_peak(j) = pbydpa_fubini(i);
+            sigma_fubini_peak(j)  = sigma_fubini(i);
+            j = j + 1;
+        end
+    end
+end
+
+
+%% Plotting
 
 % 1) plot simulated sensor data :: P(x) for x = [-1.5, 1.5]m
 figure(1)
-plot(kgrid.x_vec, sensor_data.p_final)
-xlabel('x-position [m]'); ylabel('Max Signal Amplitude Pmax(t) [Pa]');
-title( ['Pmax(t)  [' , num2str(ppw) ,' ppw | P = ' , num2str(source_mag/1e6) ,...
-    ' MPa | B/A = ' , num2str(medium.BonA) , ' | y = ' , num2str(medium.alpha_power) , ']'] );
+plot(kgrid.x_vec ./ xsh, sensor_data.p_final ./ source_mag)                     % Simulated wave profile
 hold on
-plot(kgrid.x_vec, sensor_data.p_max, 'k', 'LineWidth', 1)  % 
-plot(kgrid.x_vec, pa, 'r', 'LineWidth', 1)                 % envelope over wave profile
+plot(kgrid.x_vec ./ xsh, sensor_data.p_max ./ source_mag, 'k', 'LineWidth', 1)  % Simulated max pressure
+plot(kgrid.x_vec ./ xsh, pa ./ source_mag, 'r', 'LineWidth', 2)                 % Fay solution
+% plot(sigma_fubini, pbydpa_fubini, 'LineWidth', 1)                             % Wave profile of Fubini Solution 
+plot(sigma_fubini_peak, pbydpa_fubini_peak, 'LineWidth', 2)                     % Max of Fubini Solution 
+xline(-3.5, '--k');  xline(-1, '--k');  xline(1, '--k');  xline(3.5, '--k');
 hold off
-legend('P final', 'P max', 'Analytical');
+xlabel('sigma = x-position / xsh'); ylabel('Pmax / Pexcitation');
+title( ['P   [' , num2str(ppw) ,' ppw | P = ' , num2str(source_mag/1e6) ,...
+    ' MPa | B/A = ' , num2str(medium.BonA) , ' | y = ' , num2str(medium.alpha_power) , ']'] );
+legend('P final', 'P max', 'Fay Solution', 'Fubini Solution');
 
-% % 1) plot simulated sensor data :: P(x) for x = [-1.5, 1.5]m
-% figure(1)
-% % plot(kgrid.x_vec, sensor_data(:, end))
-% plot(kgrid.x_vec, sensor_data)
-% xlabel('x-position [m]'); ylabel('Signal Amplitude [Pa]');
-% title( ['P(x)  [' , num2str(ppw) ,' ppw | P = ' , num2str(source_mag/1e6) ,...
-%     ' MPa | B/A = ' , num2str(medium.BonA) , ' | y = ' , num2str(medium.alpha_power) , ']'] );
-% % plot shock amplitude vs distance for x = [-1.5, 1.5]m
-% hold on
-% plot(x, pa, 'r')  % envelope to wave profile
-% hold off
